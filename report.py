@@ -9,9 +9,9 @@ The score depends on the time unit, so it is reported in seconds and ms.
 import json, math, sys
 
 res = json.load(open(sys.argv[1] if len(sys.argv) > 1 else "results.json"))
-order = ["lz4", "zstd3", "gzip6", "gzip9", "hp1", "bzip2", "zstd19", "brotli11", "xz9", "hp"]
+order = ["lz4", "zstd3", "gzip6", "gzip9", "hp1", "zstd9", "bzip2", "zstd19", "brotli11", "xz9", "hp"]
 label = {"lz4": "lz4 (default)", "zstd3": "zstd -3", "gzip6": "gzip -6", "gzip9": "gzip -9",
-         "bzip2": "bzip2 -9", "zstd19": "zstd -19", "brotli11": "brotli -11 (24-bit window)",
+         "bzip2": "bzip2 -9", "zstd9": "zstd -9", "zstd19": "zstd -19", "brotli11": "brotli -11 (24-bit window)",
          "xz9": "xz -9", "hp": "**hp -9 (best)**", "hp1": "**hp -1 (fast)**"}
 base = res["gzip6"]
 rb, tb = base["total_orig"] / base["total_comp"], base["tc"]

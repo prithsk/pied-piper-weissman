@@ -19,8 +19,13 @@ TIMEOUT = 30
 
 def seeds():
     text = open(os.path.join(os.path.dirname(__file__), "README.md"), "rb").read()
-    xr = open(os.path.join(os.path.dirname(__file__), "../corpus/sil/x-ray"), "rb").read()[:30000]
-    moz = open(os.path.join(os.path.dirname(__file__), "../corpus/sil/ooffice"), "rb").read()[:40000]
+    corpus = os.environ.get("FUZZ_CORPUS", os.path.join(os.path.dirname(__file__), "corpus", "silesia"))
+    def sample(name, n, fallback):
+        p = os.path.join(corpus, name)
+        return open(p, "rb").read()[:n] if os.path.exists(p) else fallback
+    noise = bytes(rng.getrandbits(8) & 0x3f for _ in range(30000))  # low-entropy binary stand-in
+    xr = sample("x-ray", 30000, noise)
+    moz = sample("ooffice", 40000, bytes(b ^ 0xe8 if i % 7 == 0 else b for i, b in enumerate(noise)))
     return {
         "empty": b"", "one": b"x", "zeros": bytes(100000), "text": text, "xray": xr, "exe": moz,
         "pattern": b"abcabcabd" * 3000, "random": bytes(rng.getrandbits(8) for _ in range(5000)),

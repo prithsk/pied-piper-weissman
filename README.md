@@ -1,11 +1,17 @@
 # hp: Pied Piper, actually benchmarked
 
+[![CI](https://github.com/prithsk/pied-piper-hp/actions/workflows/ci.yml/badge.svg)](https://github.com/prithsk/pied-piper-hp/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 I love HBO's *Silicon Valley*, and Pied Piper is my favorite part of the show. The show never really showed how the compression engine worked, and the famous Weissman scores came with no baseline and no time unit. So I built a real Pied Piper and benchmarked it against the tools Pied Piper would have faced, with every number measured and every file checked.
 
 hp is a lossless compressor in one C file of about 790 lines, and it has no dependencies. It has two modes:
 
 - `hp c -9` is the default. It uses context mixing, and it beats every standard tool I tested on every file. It comes out 20.1% smaller than xz -9 across the whole Silesia corpus, but it is slow.
 - `hp c -1` is the fast mode. It uses LZ77 with an adaptive range coder, and it beats gzip -6 on size and on speed at the same time. That means it beats the Weissman baseline even after compression time counts against it.
+
+![hp vs standard compressors on the Silesia corpus](docs/benchmark.png)
+
+hp is a fan project. I'm not affiliated with HBO or the show, and Pied Piper, Hooli and Nucleus are their fictional companies.
 
 ## Pied Piper vs hp
 
@@ -54,7 +60,9 @@ The slowest hp -1 run beat the fastest gzip -6 run by 19%, and the hp -1 output 
 
 hp -9 is the real headline. It beats every tool I tested on every file, and the next section shows each one.
 
-hp -1 beats gzip, but zstd already sits ahead of hp -1. In a quick calibration run, zstd -9 made 59,081,628 bytes in 4.89 s on the same corpus. That result is smaller and faster than hp -1, so I don't claim hp -1 beats modern tools. zstd has years of tuning behind it, and closing that gap is my next fight.
+hp -1 beats gzip, but zstd already sits ahead of hp -1. zstd -9 makes 59,081,628 bytes at 36.6 MB/s on the same corpus through the same round-trip harness. That result is smaller and faster than hp -1, so I don't claim hp -1 beats modern tools. zstd has years of tuning behind it, and closing that gap is my next fight. The chart shows zstd -9 just up and to the right of hp -1.
+
+hp -9 also isn't the strongest compressor in the world. cmix publishes 28,261,094 bytes for Silesia on its own site, so hp -9 comes out about 38% larger than cmix. cmix recommends at least 32 GB of RAM and runs far slower still, and hp -9 needs about 1.1 GB. I tried to measure paq8px myself, but my build sandbox blocked running downloaded third-party code, so I left it out of the tables.
 
 ## All results
 
@@ -67,6 +75,7 @@ I ran each tool once for this table. xz -9, zstd -19 and brotli -11 shared the 2
 | gzip -6 | 68,227,893 | 3.106 | +39.8% | 19.05 | 105.10 | 1.00 | 1.00 | 12/12 exact |
 | gzip -9 | 67,631,918 | 3.134 | +38.6% | 8.42 | 106.32 | 0.75 | 0.93 | 12/12 exact |
 | **hp -1, fast** | 60,577,196 | 3.499 | +24.1% | 26.13 | 43.77 | 1.30 | 1.17 | 12/12 exact |
+| zstd -9 | 59,081,628 | 3.587 | +21.1% | 36.63 | 534.41 | 1.58 | 1.24 | 12/12 exact |
 | bzip2 -9 | 54,506,769 | 3.888 | +11.7% | 8.97 | 20.51 | 0.95 | 1.16 | 12/12 exact |
 | zstd -19 | 52,891,946 | 4.007 | +8.4% | 1.52 | 478.88 | 0.63 | 1.01 | 12/12 exact |
 | brotli -11, 24-bit window | 49,564,563 | 4.276 | +1.6% | 0.36 | 233.59 | 0.52 | 0.97 | 12/12 exact |
@@ -89,6 +98,10 @@ Compressed bytes per file:
 | webster | 41,458,703 | 12,201,972 | 11,669,662 | 12,061,616 | 8,644,714 | 8,679,359 | 8,428,575 | 8,385,868 | 5,842,977 | -30.3% |
 | x-ray | 8,474,240 | 6,037,788 | 5,016,560 | 6,037,707 | 4,051,112 | 5,129,823 | 4,682,753 | 4,489,868 | 3,660,131 | -9.7% |
 | xml | 5,345,280 | 691,988 | 629,378 | 662,280 | 441,186 | 452,941 | 430,566 | 453,260 | 328,439 | -23.7% |
+
+## Is it actually middle-out?
+
+No, it isn't. The show never defined middle-out well enough for anyone to build it, and a compressor that starts in the middle of a stream has no clear advantage, since every byte still has to be coded once. hp just reads the data from front to back. The context mixer does chase the same goal Misra described, though. It looks at the data from many angles at once and bets on whichever pattern predicts the next bit best. I feel that this is the closest honest thing to Richard's whiteboard.
 
 ## Security review
 
@@ -114,6 +127,7 @@ The byte-exact gate also caught a real bug in the fast mode while I tuned it. Th
 - The first pass ran 3,000 cases. 2,807 were rejected, and 193 were accepted with output identical to the original. There were no crashes, no sanitizer reports, no hangs and no wrong outputs accepted.
 - The final code ran the same 3,000 mutations with seed 1234, and the outcome was identical.
 - The final code also ran 2,000 new mutations with seed 777. 1,870 were rejected, and 130 were accepted with identical output. There were no crashes, no sanitizer reports, no hangs and no wrong outputs accepted.
+- CI runs `scripts/ci_check.sh` on every push and once a week. It round-trips both modes, checks that corrupt input gets rejected with no output, checks the same-file guard and fuzzes 300 more cases under the sanitizers.
 
 The accepted mutations changed no decoded byte. Some edited the coder's padding bytes, and others edited the table-size byte, a field the fast mode doesn't use. Both encoders also ran under the sanitizers on all 12 sample files. GCC's static analyzer with `-fanalyzer` reported nothing. The hardware CRC32C path and the portable table path give identical results, so `.hp` files move between machines.
 
@@ -184,21 +198,44 @@ For the fast mode, I tuned on the full corpus with `experiments/tools/lzgrid.sh`
 
 ## Usage
 
+The whole benchmark is one command on Linux, macOS or WSL. It builds hp, downloads Silesia from a GitHub mirror, checks every file by SHA-256 and then reruns every table and the chart:
+
+```
+pip install zstandard brotli lz4 matplotlib
+bash scripts/bench_all.sh
+```
+
+To run hp by hand:
+
 ```
 gcc -O3 -march=native -o hp hp.c
 ./hp c -1 input output.hp      # fast
 ./hp c input output.hp         # best, same as -9
 ./hp d output.hp restored      # either mode; exits 2 on corrupt input
 
-python3 bench.py /path/to/silesia gzip6,hp1,hp --out results.json
-python3 timing.py /path/to/silesia 10 gzip6,hp1
+bash scripts/get_silesia.sh corpus/silesia
+python3 bench.py corpus/silesia gzip6,hp1,hp --out results.json
+python3 timing.py corpus/silesia 10 gzip6,hp1
 python3 report.py results.json
+python3 chart.py
 
-gcc -O1 -g -fsanitize=address,undefined -fno-sanitize-recover=undefined -o hp_asan hp.c
-python3 fuzz.py ./hp_asan 3000
+bash scripts/ci_check.sh 300   # the same checks CI runs
 ```
 
-The `experiments/` folder holds every earlier version's source, the benchmark and fuzz logs and the tuning scripts.
+## What's in the repo
+
+| Path | What it holds |
+|---|---|
+| `hp.c` | the whole compressor, both modes |
+| `bench.py`, `timing.py`, `report.py`, `chart.py` | the benchmark harness, the repeated timing, the tables and the chart |
+| `fuzz.py` | the mutation fuzzer for both decoders |
+| `scripts/` | the corpus downloader, the one-command benchmark and the CI check |
+| `results.json`, `timing.json` | the raw numbers behind every table here |
+| `experiments/` | every earlier version's source, the benchmark and fuzz logs and the tuning scripts |
+
+## License
+
+hp is MIT licensed. See [LICENSE](LICENSE).
 
 ## Sources for the show details
 

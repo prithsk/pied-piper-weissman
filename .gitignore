@@ -5,3 +5,4 @@ hp_asan
 *.hp
 crash_*.hp
 __pycache__/
+corpus/
