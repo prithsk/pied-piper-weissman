@@ -1,0 +1,13 @@
+250 {'rejected': 242, 'accepted_identical': 8}
+500 {'rejected': 472, 'accepted_identical': 28}
+750 {'rejected': 703, 'accepted_identical': 47}
+1000 {'rejected': 937, 'accepted_identical': 63}
+1250 {'rejected': 1172, 'accepted_identical': 78}
+1500 {'rejected': 1403, 'accepted_identical': 97}
+1750 {'rejected': 1640, 'accepted_identical': 110}
+2000 {'rejected': 1872, 'accepted_identical': 128}
+2250 {'rejected': 2108, 'accepted_identical': 142}
+2500 {'rejected': 2337, 'accepted_identical': 163}
+2750 {'rejected': 2574, 'accepted_identical': 176}
+3000 {'rejected': 2807, 'accepted_identical': 193}
+FINAL {'rejected': 2807, 'accepted_identical': 193}

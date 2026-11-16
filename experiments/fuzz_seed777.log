@@ -1,0 +1,9 @@
+250 {'rejected': 227, 'accepted_identical': 23}
+500 {'rejected': 471, 'accepted_identical': 29}
+750 {'rejected': 703, 'accepted_identical': 47}
+1000 {'rejected': 937, 'accepted_identical': 63}
+1250 {'rejected': 1172, 'accepted_identical': 78}
+1500 {'rejected': 1405, 'accepted_identical': 95}
+1750 {'rejected': 1631, 'accepted_identical': 119}
+2000 {'rejected': 1870, 'accepted_identical': 130}
+FINAL {'rejected': 1870, 'accepted_identical': 130}

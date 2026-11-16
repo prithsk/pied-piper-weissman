@@ -1,0 +1,7 @@
+# build outputs
+hp
+hp_asan
+*.o
+*.hp
+crash_*.hp
+__pycache__/
