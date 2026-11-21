@@ -58,9 +58,11 @@ The slowest hp -1 run beat the fastest gzip -6 run by 19%, and the hp -1 output 
 
 ### Second machine
 
-I repeated the head-to-head on an Intel Core Ultra 9 285H laptop under WSL2 on Windows. The laptop was running warm and throttled, and its times are about twice as slow as an earlier unthrottled run. The raw data is in `timing_laptop.json`.
+I repeated the head-to-head on an Intel Core Ultra 9 285H laptop under WSL2 on Windows. The laptop was running warm and throttled, and its times are about twice as slow as an earlier unthrottled run.
 
 hp -1 came out 11.2% smaller than gzip -6, and it compressed faster in all 10 interleaved runs. Its median was 10.56 s, against 11.77 s for gzip -6. The strict test still **failed** on this machine: hp -1 ranged from 8.35 to 12.35 s, so its slowest run lost to gzip -6's fastest run of 10.41 s. Run-to-run noise was bigger than the gap between the two tools. The test passed on the 2-core VM above, and that table stays the main result. hp -1 won 10 of 10 paired runs. If the two tools were equally fast, that would happen by chance about 1 time in 1,024.
+
+The laptop's raw numbers are in `results_laptop.json`, a full one-pass benchmark from an earlier unthrottled run, and `timing_laptop.json`, the throttled 10-run head-to-head above.
 
 ## Where hp really stands
 
@@ -237,6 +239,7 @@ bash scripts/ci_check.sh 300   # the same checks CI runs
 | `fuzz.py` | the mutation fuzzer for both decoders |
 | `scripts/` | the corpus downloader, the one-command benchmark and the CI check |
 | `results.json`, `timing.json` | the raw numbers behind every table here |
+| `results_laptop.json`, `timing_laptop.json` | the second-machine data from the Core Ultra 9 285H laptop |
 | `experiments/` | every earlier version's source, the benchmark and fuzz logs and the tuning scripts |
 
 ## License
