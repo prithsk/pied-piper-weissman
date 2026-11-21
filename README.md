@@ -56,6 +56,12 @@ I ran `timing.py` for 10 interleaved runs over all of Silesia. Each run used a s
 
 The slowest hp -1 run beat the fastest gzip -6 run by 19%, and the hp -1 output is 11.2% smaller. hp -1 wins on 11 of the 12 files. The one loss is `reymont`, a Polish text file, where hp -1 comes out 5% larger than gzip -6. hp -1 also decompresses about 2.5x slower than gzip. The Weissman score ignores decompression, but real users don't.
 
+### Second machine
+
+I repeated the head-to-head on an Intel Core Ultra 9 285H laptop under WSL2 on Windows. The laptop was running warm and throttled, and its times are about twice as slow as an earlier unthrottled run. The raw data is in `timing_laptop.json`.
+
+hp -1 came out 11.2% smaller than gzip -6, and it compressed faster in all 10 interleaved runs. Its median was 10.56 s, against 11.77 s for gzip -6. The strict test still **failed** on this machine: hp -1 ranged from 8.35 to 12.35 s, so its slowest run lost to gzip -6's fastest run of 10.41 s. Run-to-run noise was bigger than the gap between the two tools. The test passed on the 2-core VM above, and that table stays the main result. hp -1 won 10 of 10 paired runs. If the two tools were equally fast, that would happen by chance about 1 time in 1,024.
+
 ## Where hp really stands
 
 hp -9 is the real headline. It beats every tool I tested on every file, and the next section shows each one.
