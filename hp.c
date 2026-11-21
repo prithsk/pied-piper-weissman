@@ -9,6 +9,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#include <windows.h>
+#endif
 
 static void *xalloc(size_t n, int zero) {
   void *p = zero ? calloc(n ? n : 1, 1) : malloc(n ? n : 1);
@@ -35,8 +40,8 @@ static inline int squash(int d) {
 }
 static inline int stretch(int p) { return stretch_t[p]; }
 
-static void e8e9(U8 *d, long n, int fwd) {
-  for (long i = 0; i + 4 < n; i++) {
+static void e8e9(U8 *d, int64_t n, int fwd) {
+  for (int64_t i = 0; i + 4 < n; i++) {
     if ((d[i] & 0xfe) == 0xe8) {
       U32 a = d[i+1] | d[i+2] << 8 | d[i+3] << 16 | (U32)d[i+4] << 24;
       a = fwd ? a + (U32)i : a - (U32)i;
@@ -45,11 +50,11 @@ static void e8e9(U8 *d, long n, int fwd) {
     }
   }
 }
-static int looks_x86(const U8 *d, long n) {  // E8/E9 calls whose offset top byte is 0x00/0xFF
-  long hit = 0, all = 0;
-  long seen = 0;  // sample the first 4 KB of every 64 KB
-  for (long blk = 0; blk < n; blk += 65536)
-    for (long i = blk; i < blk + 4096 && i + 4 < n; i++, seen++)
+static int looks_x86(const U8 *d, int64_t n) {  // E8/E9 calls whose offset top byte is 0x00/0xFF
+  int64_t hit = 0, all = 0;
+  int64_t seen = 0;  // sample the first 4 KB of every 64 KB
+  for (int64_t blk = 0; blk < n; blk += 65536)
+    for (int64_t i = blk; i < blk + 4096 && i + 4 < n; i++, seen++)
       if ((d[i] & 0xfe) == 0xe8) { all++; if (d[i+4] == 0 || d[i+4] == 0xff) hit++; }
   return n > 4096 && all * 1000 > seen * 4 && hit * 10 > all * 6;
 }
@@ -731,9 +736,23 @@ static void write_all(const char *path, const U8 *p, size_t n) {
   }
 }
 static int same_file(const char *a, const char *b) {
+#ifdef _WIN32  // st_ino is always 0 on Windows, so compare volume serial and file index
+  DWORD share = FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE;
+  HANDLE ha = CreateFileA(a, 0, share, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
+  if (ha == INVALID_HANDLE_VALUE) return 0;
+  HANDLE hb = CreateFileA(b, 0, share, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
+  if (hb == INVALID_HANDLE_VALUE) { CloseHandle(ha); return 0; }
+  BY_HANDLE_FILE_INFORMATION ia, ib;
+  int same = GetFileInformationByHandle(ha, &ia) && GetFileInformationByHandle(hb, &ib) &&
+             ia.dwVolumeSerialNumber == ib.dwVolumeSerialNumber &&
+             ia.nFileIndexHigh == ib.nFileIndexHigh && ia.nFileIndexLow == ib.nFileIndexLow;
+  CloseHandle(ha); CloseHandle(hb);
+  return same;
+#else
   struct stat sa, sb;
   if (stat(a, &sa) || stat(b, &sb)) return 0;
   return sa.st_dev == sb.st_dev && sa.st_ino == sb.st_ino;
+#endif
 }
 static void put32(U8 *p, U32 v) { for (int i = 0; i < 4; i++) p[i] = (U8)(v >> (8 * i)); }
 static U32 get32(const U8 *p) { return p[0] | p[1] << 8 | p[2] << 16 | (U32)p[3] << 24; }
@@ -758,8 +777,8 @@ int main(int argc, char **argv) {
       TBITS = t;
     }
     U32 crc = crc32c(data, n);
-    int x86 = looks_x86(data, (long)n);
-    if (x86) e8e9(data, (long)n, 1);
+    int x86 = looks_x86(data, (int64_t)n);
+    if (x86) e8e9(data, (int64_t)n, 1);
     Buf o = {0, 0, 0};
     buf_reserve(&o, n / 2 + 1024);
     o.n = HDR;
@@ -777,7 +796,7 @@ int main(int argc, char **argv) {
     In in = {data + HDR, n - HDR, 0, 0};
     U8 *out = xalloc((size_t)len + 1, 0);
     int bad = lz ? lz_decompress(&in, out, len) : cm_decompress(&in, out, len);
-    if (!bad && x86) e8e9(out, (long)len, 0);
+    if (!bad && x86) e8e9(out, (int64_t)len, 0);
     if (bad || in.i != in.n || crc32c(out, len) != crc) {
       fprintf(stderr, "hp: %s: corrupt or truncated data, nothing written\n", ip); return 2;
     }
