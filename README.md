@@ -4,7 +4,7 @@
 
 I love HBO's *Silicon Valley*, and Pied Piper is my favorite part of the show. The show never really showed how the compression engine worked, and the famous Weissman scores came with no baseline and no time unit. So I built a real Pied Piper and benchmarked it against the tools Pied Piper would have faced, with every number measured and every file checked.
 
-hp is a lossless compressor in one C file of about 790 lines, and it has no dependencies. It has two modes:
+hp is a lossless compressor in one C file of about 800 lines, and it has no dependencies. It has two modes:
 
 - `hp c -9` is the default. It uses context mixing, and it beats every standard tool I tested on every file. It comes out 20.1% smaller than xz -9 across the whole Silesia corpus, but it is slow.
 - `hp c -1` is the fast mode. It uses LZ77 with an adaptive range coder, and it beats gzip -6 on size and on speed at the same time. That means it beats the Weissman baseline even after compression time counts against it.
@@ -12,6 +12,15 @@ hp is a lossless compressor in one C file of about 790 lines, and it has no depe
 ![hp vs standard compressors on the Silesia corpus](docs/benchmark.png)
 
 hp is a fan project. I'm not affiliated with HBO or the show, and Pied Piper, Hooli and Nucleus are their fictional companies.
+
+## Download
+
+Prebuilt binaries are on the [v1.0.0 release](https://github.com/prithsk/pied-piper-weissman/releases/tag/v1.0.0):
+
+- [`hp-linux-x86_64`](https://github.com/prithsk/pied-piper-weissman/releases/download/v1.0.0/hp-linux-x86_64) for Linux, statically linked
+- [`hp-windows-x86_64.exe`](https://github.com/prithsk/pied-piper-weissman/releases/download/v1.0.0/hp-windows-x86_64.exe) for 64-bit Windows
+
+I tested both, on Linux and on Windows 11. I built them without `-march=native`, so they run on any x86-64 CPU.
 
 ## Pied Piper vs hp
 
@@ -127,6 +136,8 @@ I reviewed the code and found these issues. All of them are fixed now.
 | Mixer weights could grow without bound | Signed overflow is undefined behavior in C | Weights are clamped to ±2^24. On Silesia the clamp changes only `nci`, and that stream gets 32 bytes smaller |
 | `fwrite` and `fclose` errors went unchecked | A full disk gave silently truncated output | hp checks them and deletes a partial output |
 | Scripts used fixed `/tmp` names | A symlink race on shared machines | `rt.sh` uses `mktemp -d` now, and `bench.py` already used `tempfile` |
+| Windows reports every file's inode as 0 | The same-file guard refused every file, so `hp c` never worked on Windows | On Windows, hp compares the volume serial number and file index through the Win32 API. I tested it on Windows 11 |
+| `long` is 32 bits on Windows | The x86 filter's lengths could wrap for files from 2 to 4 GB | The lengths are `int64_t` now. Linux output is byte-identical before and after the change |
 
 The byte-exact gate also caught a real bug in the fast mode while I tuned it. The parser skips ahead inside long runs of literals, and that skip could leave a stale lookahead match behind. The encoder then wrote that match at the wrong position. The CRC rejected the output before hp wrote anything.
 
@@ -228,6 +239,14 @@ python3 report.py results.json
 python3 chart.py
 
 bash scripts/ci_check.sh 300   # the same checks CI runs
+```
+
+On Windows, the release binary works the same way in PowerShell:
+
+```
+.\hp-windows-x86_64.exe c -1 input output.hp    # fast
+.\hp-windows-x86_64.exe c input output.hp       # best, same as -9
+.\hp-windows-x86_64.exe d output.hp restored    # either mode; exits 2 on corrupt input
 ```
 
 ## What's in the repo
