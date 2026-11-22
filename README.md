@@ -1,6 +1,6 @@
 # pipr: Pied Piper, actually benchmarked
 
-[![CI](https://github.com/prithsk/pied-piper-hp/actions/workflows/ci.yml/badge.svg)](https://github.com/prithsk/pied-piper-hp/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![CI](https://github.com/prithsk/pipr/actions/workflows/ci.yml/badge.svg)](https://github.com/prithsk/pipr/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 I love HBO's *Silicon Valley*, and Pied Piper is my favorite part of the show. The show never really showed how the compression engine worked, and the famous Weissman scores came with no baseline and no time unit. So I built a real Pied Piper and benchmarked it against the tools Pied Piper would have faced, with every number measured and every file checked.
 
@@ -15,12 +15,12 @@ pipr is a fan project. I'm not affiliated with HBO or the show, and Pied Piper, 
 
 ## Download
 
-Prebuilt binaries are on the [v1.1.0 release](https://github.com/prithsk/pied-piper-weissman/releases/tag/v1.1.0):
+Prebuilt binaries are on the [v1.1.0 release](https://github.com/prithsk/pipr/releases/tag/v1.1.0):
 
-- [`pipr-linux-x86_64`](https://github.com/prithsk/pied-piper-weissman/releases/download/v1.1.0/pipr-linux-x86_64) for Linux, statically linked
-- [`pipr-windows-x86_64.exe`](https://github.com/prithsk/pied-piper-weissman/releases/download/v1.1.0/pipr-windows-x86_64.exe) for 64-bit Windows
+- [`pipr-linux-x86_64`](https://github.com/prithsk/pipr/releases/download/v1.1.0/pipr-linux-x86_64) for Linux, statically linked
+- [`pipr-windows-x86_64.exe`](https://github.com/prithsk/pipr/releases/download/v1.1.0/pipr-windows-x86_64.exe) for 64-bit Windows
 
-I built them without `-march=native`, so they run on any x86-64 CPU. pipr was called hp up to [v1.0.0](https://github.com/prithsk/pied-piper-weissman/releases/tag/v1.0.0), and I tested that release on Linux and Windows 11. v1.1.0 changes only the name. The file format is byte-for-byte the same, so pipr decodes `.hp` files from v1.0.0.
+I built them without `-march=native`, so they run on any x86-64 CPU. pipr was called hp up to [v1.0.0](https://github.com/prithsk/pipr/releases/tag/v1.0.0), and I tested that release on Linux and Windows 11. v1.1.0 changes only the name. The file format is byte-for-byte the same, so pipr decodes `.hp` files from v1.0.0.
 
 ## Pied Piper vs pipr
 
