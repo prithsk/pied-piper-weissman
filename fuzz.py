@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Mutation fuzzer for hp's decoders. Run against a sanitizer build:
+"""Mutation fuzzer for pipr's decoders. Run against a sanitizer build:
 
-  gcc -O1 -g -fsanitize=address,undefined -fno-sanitize-recover=undefined -o hp_asan hp.c
-  python3 fuzz.py ./hp_asan 2000
+  gcc -O1 -g -fsanitize=address,undefined -fno-sanitize-recover=undefined -o pipr_asan pipr.c
+  python3 fuzz.py ./pipr_asan 2000
 
 Pass criteria for every mutated input:
   - exit code 0 or 2 only (2 = rejected as corrupt); no sanitizer report, signal or hang
@@ -74,10 +74,10 @@ def main():
     bad = []
     with tempfile.TemporaryDirectory() as tmp:
         comp = {}
-        env = dict(os.environ, HP_TBITS="16")
+        env = dict(os.environ, PIPR_TBITS="16")
         for name, data in seeds().items():
             for mode in ("-1", "-9"):
-                src, dst = os.path.join(tmp, "s"), os.path.join(tmp, "s.hp")
+                src, dst = os.path.join(tmp, "s"), os.path.join(tmp, "s.pipr")
                 open(src, "wb").write(data)
                 rc, err = run([BIN, "c", mode, src, dst], env)
                 assert rc == 0, (name, mode, rc, err)
@@ -85,8 +85,8 @@ def main():
         keys = sorted(comp)
         for k in keys:  # unmodified seeds must round-trip
             data, blob = comp[k]
-            open(os.path.join(tmp, "f.hp"), "wb").write(blob)
-            rc, err = run([BIN, "d", os.path.join(tmp, "f.hp"), os.path.join(tmp, "f.out")])
+            open(os.path.join(tmp, "f.pipr"), "wb").write(blob)
+            rc, err = run([BIN, "d", os.path.join(tmp, "f.pipr"), os.path.join(tmp, "f.out")])
             assert rc == 0 and open(os.path.join(tmp, "f.out"), "rb").read() == data, (k, rc, err)
         # pure garbage with a valid-looking header
         for t in range(N):
@@ -99,7 +99,7 @@ def main():
             else:
                 data, blob = comp[k]
                 blob, kind = mutate(blob)
-            fin, fout = os.path.join(tmp, "f.hp"), os.path.join(tmp, "f.out")
+            fin, fout = os.path.join(tmp, "f.pipr"), os.path.join(tmp, "f.out")
             if os.path.exists(fout): os.remove(fout)
             open(fin, "wb").write(blob)
             rc, err = run([BIN, "d", fin, fout])
@@ -113,7 +113,7 @@ def main():
             else:
                 stats[f"CRASH_{rc}"] += 1
                 bad.append((k, kind, rc, err[-400:]))
-                open(os.path.join(os.path.dirname(os.path.abspath(__file__)), f"crash_{t}.hp"), "wb").write(blob)
+                open(os.path.join(os.path.dirname(os.path.abspath(__file__)), f"crash_{t}.pipr"), "wb").write(blob)
             if (t + 1) % 250 == 0:
                 print(t + 1, dict(stats), flush=True)
     print("FINAL", dict(stats))

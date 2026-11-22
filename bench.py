@@ -2,11 +2,11 @@
 """Benchmark harness. Hard gate: every file must round-trip byte-exact.
 
 Usage: bench.py <corpus_dir> <compressor,...> [--out results.json]
-Compressors: gzip6 gzip9 bzip2 xz6 xz9 zstd3 zstd19 brotli11 lz4 hp (-9) hp1 (-1)
+Compressors: gzip6 gzip9 bzip2 xz6 xz9 zstd3 zstd19 brotli11 lz4 pipr (-9) pipr1 (-1)
 """
 import hashlib, json, os, subprocess, sys, time, tempfile, math
 
-HP = os.path.join(os.path.dirname(os.path.abspath(__file__)), "hp")
+PIPR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pipr")
 
 
 def cli(cmd_c, cmd_d):
@@ -29,19 +29,19 @@ def lib(fc, fd):
     return c, d
 
 
-def hp_tool(extra=()):
+def pipr_tool(extra=()):
     def c(data, tmp):
-        src, dst = os.path.join(tmp, "in"), os.path.join(tmp, "in.hp")
+        src, dst = os.path.join(tmp, "in"), os.path.join(tmp, "in.pipr")
         open(src, "wb").write(data)
         t = time.perf_counter()
-        subprocess.run([HP, "c", *extra, src, dst], check=True)
+        subprocess.run([PIPR, "c", *extra, src, dst], check=True)
         el = time.perf_counter() - t
         return open(dst, "rb").read(), el
     def d(blob, tmp):
-        src, dst = os.path.join(tmp, "x.hp"), os.path.join(tmp, "x.out")
+        src, dst = os.path.join(tmp, "x.pipr"), os.path.join(tmp, "x.out")
         open(src, "wb").write(blob)
         t = time.perf_counter()
-        subprocess.run([HP, "d", src, dst], check=True)
+        subprocess.run([PIPR, "d", src, dst], check=True)
         el = time.perf_counter() - t
         return open(dst, "rb").read(), el
     return c, d
@@ -66,10 +66,10 @@ def make(name):
     if name == "lz4":
         import lz4.frame as l
         return lib(l.compress, l.decompress)
-    if name == "hp":
-        return hp_tool()
-    if name == "hp1":
-        return hp_tool(("-1",))
+    if name == "pipr":
+        return pipr_tool()
+    if name == "pipr1":
+        return pipr_tool(("-1",))
     raise SystemExit("unknown compressor " + name)
 
 

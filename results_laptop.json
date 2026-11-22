@@ -743,7 +743,7 @@
   "td": 0.8872613160000355,
   "all_exact": true
  },
- "hp": {
+ "pipr": {
   "files": {
    "dickens": {
     "orig": 10192446,
@@ -836,7 +836,7 @@
   "td": 1048.1948903139998,
   "all_exact": true
  },
- "hp1": {
+ "pipr1": {
   "files": {
    "dickens": {
     "orig": 10192446,

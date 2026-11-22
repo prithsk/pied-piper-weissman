@@ -9,10 +9,10 @@ The score depends on the time unit, so it is reported in seconds and ms.
 import json, math, sys
 
 res = json.load(open(sys.argv[1] if len(sys.argv) > 1 else "results.json"))
-order = ["lz4", "zstd3", "gzip6", "gzip9", "hp1", "zstd9", "bzip2", "zstd19", "brotli11", "xz9", "hp"]
+order = ["lz4", "zstd3", "gzip6", "gzip9", "pipr1", "zstd9", "bzip2", "zstd19", "brotli11", "xz9", "pipr"]
 label = {"lz4": "lz4 (default)", "zstd3": "zstd -3", "gzip6": "gzip -6", "gzip9": "gzip -9",
          "bzip2": "bzip2 -9", "zstd9": "zstd -9", "zstd19": "zstd -19", "brotli11": "brotli -11 (24-bit window)",
-         "xz9": "xz -9", "hp": "**hp -9 (best)**", "hp1": "**hp -1 (fast)**"}
+         "xz9": "xz -9", "pipr": "**pipr -9 (best)**", "pipr1": "**pipr -1 (fast)**"}
 base = res["gzip6"]
 rb, tb = base["total_orig"] / base["total_comp"], base["tc"]
 
@@ -39,12 +39,12 @@ for k in order:
           f"{'12/12 exact' if v['all_exact'] else 'FAIL'} |")
 
 print("\nPer file (compressed bytes):\n")
-files = sorted(res["hp"]["files"]) if "hp" in res else []
-cols = ["gzip6", "hp1", "gzip9", "bzip2", "zstd19", "brotli11", "xz9", "hp"]
-print("| File | Original | " + " | ".join(label[c].replace("**", "") for c in cols) + " | hp -9 vs best other |")
+files = sorted(res["pipr"]["files"]) if "pipr" in res else []
+cols = ["gzip6", "pipr1", "gzip9", "bzip2", "zstd19", "brotli11", "xz9", "pipr"]
+print("| File | Original | " + " | ".join(label[c].replace("**", "") for c in cols) + " | pipr -9 vs best other |")
 print("|---|---:|" + "---:|" * len(cols) + "---:|")
 for f in files:
     row = [res[c]["files"][f]["comp"] for c in cols]
     best = min(row[2:-1])
-    print(f"| {f} | {res['hp']['files'][f]['orig']:,} | " + " | ".join(f"{x:,}" for x in row) +
+    print(f"| {f} | {res['pipr']['files'][f]['orig']:,} | " + " | ".join(f"{x:,}" for x in row) +
           f" | {100*(row[-1]/best-1):+.1f}% |")

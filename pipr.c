@@ -1,5 +1,5 @@
-// hp: a lossless compressor ("Pied Piper, but real").
-// Usage: hp c [-1|-9] in out | hp d in out
+// pipr: a lossless compressor ("Pied Piper, but real").
+// Usage: pipr c [-1|-9] in out | pipr d in out
 //   -9 (default): context mixing, best ratio, ~0.2 MB/s
 //   -1: LZ77 + adaptive range coder, fast
 // Model: hashed order-N contexts -> adaptive bit predictors -> gated
@@ -17,7 +17,7 @@
 
 static void *xalloc(size_t n, int zero) {
   void *p = zero ? calloc(n ? n : 1, 1) : malloc(n ? n : 1);
-  if (!p) { fprintf(stderr, "hp: out of memory (%zu bytes)\n", n); exit(3); }
+  if (!p) { fprintf(stderr, "pipr: out of memory (%zu bytes)\n", n); exit(3); }
   return p;
 }
 typedef uint8_t U8; typedef uint16_t U16; typedef uint32_t U32; typedef uint64_t U64;
@@ -371,7 +371,7 @@ static void buf_reserve(Buf *b, size_t need) {
   size_t c = b->cap ? b->cap : (1u << 16);
   while (c < need) c *= 2;
   U8 *q = realloc(b->p, c);
-  if (!q) { fprintf(stderr, "hp: out of memory\n"); exit(3); }
+  if (!q) { fprintf(stderr, "pipr: out of memory\n"); exit(3); }
   b->p = q; b->cap = c;
 }
 static inline void bput(Buf *b, U8 c) { if (b->n == b->cap) buf_reserve(b, b->n + 1); b->p[b->n++] = c; }
@@ -385,7 +385,7 @@ static void crc_init(void) {
 }
 static U32 crc32c(const U8 *p, size_t n) {
   U32 c = ~0u;
-#if defined(__SSE4_2__) && defined(__x86_64__) && !defined(HP_SOFT_CRC)
+#if defined(__SSE4_2__) && defined(__x86_64__) && !defined(PIPR_SOFT_CRC)
   U64 c64 = c;
   while (n >= 8) { U64 v; memcpy(&v, p, 8); c64 = __builtin_ia32_crc32di(c64, v); p += 8; n -= 8; }
   c = (U32)c64;
@@ -710,7 +710,7 @@ static int lz_decompress(In *in, U8 *out, U32 n) {  // 0 = ok
 }
 
 // ---------------- file I/O and container ----------------
-// header: "HP3" | flags (bit0 x86 filter, bit1 LZ mode) | table bits | size u32 LE | crc32c u32 LE
+// header: "HP3" (magic kept from when pipr was called hp, so .hp files still decode) | flags (bit0 x86 filter, bit1 LZ mode) | table bits | size u32 LE | crc32c u32 LE
 #define HDR 13
 #define MAXSIZE 0xFFFFFFF0u
 static U8 *read_all(const char *path, size_t *len) {
@@ -720,7 +720,7 @@ static U8 *read_all(const char *path, size_t *len) {
   buf_reserve(&b, 1 << 20);
   while ((r = fread(b.p + b.n, 1, b.cap - b.n, f)) > 0) {
     b.n += r;
-    if (b.n > MAXSIZE) { fprintf(stderr, "hp: %s: inputs over 4 GB are not supported\n", path); exit(1); }
+    if (b.n > MAXSIZE) { fprintf(stderr, "pipr: %s: inputs over 4 GB are not supported\n", path); exit(1); }
     if (b.n == b.cap) buf_reserve(&b, b.cap * 2);
   }
   if (ferror(f)) { perror(path); exit(1); }
@@ -762,18 +762,18 @@ int main(int argc, char **argv) {
   if (argc >= 3 && argv[1][0] == 'c' && !strcmp(argv[2], "-1")) { lz = 1; ai = 3; }
   else if (argc >= 3 && argv[1][0] == 'c' && !strcmp(argv[2], "-9")) ai = 3;
   if (argc != ai + 2 || (strcmp(argv[1], "c") && strcmp(argv[1], "d"))) {
-    fprintf(stderr, "usage: hp c [-1|-9] input output   (compress; -1 fast, -9 best, default -9)\n"
-                    "       hp d input output            (decompress)\n");
+    fprintf(stderr, "usage: pipr c [-1|-9] input output   (compress; -1 fast, -9 best, default -9)\n"
+                    "       pipr d input output            (decompress)\n");
     return 1;
   }
   const char *ip = argv[ai], *op = argv[ai + 1];
-  if (same_file(ip, op)) { fprintf(stderr, "hp: input and output are the same file\n"); return 1; }
+  if (same_file(ip, op)) { fprintf(stderr, "pipr: input and output are the same file\n"); return 1; }
   init_tables(); init_dt(); crc_init();
   size_t n; U8 *data = read_all(ip, &n);
   if (argv[1][0] == 'c') {
-    if (getenv("HP_TBITS")) {  // stored in the header, so safe to vary
-      int t = atoi(getenv("HP_TBITS"));
-      if (t < 16 || t > 24) { fprintf(stderr, "hp: HP_TBITS must be 16..24\n"); return 1; }
+    if (getenv("PIPR_TBITS")) {  // stored in the header, so safe to vary
+      int t = atoi(getenv("PIPR_TBITS"));
+      if (t < 16 || t > 24) { fprintf(stderr, "pipr: PIPR_TBITS must be 16..24\n"); return 1; }
       TBITS = t;
     }
     U32 crc = crc32c(data, n);
@@ -788,17 +788,17 @@ int main(int argc, char **argv) {
     write_all(op, o.p, o.n);
   } else {
     if (n < HDR || memcmp(data, "HP3", 3) || (data[3] & ~3u) || data[4] < 16 || data[4] > 24) {
-      fprintf(stderr, "hp: %s: not an hp file, or an unsupported version\n", ip); return 2;
+      fprintf(stderr, "pipr: %s: not a pipr file, or an unsupported version\n", ip); return 2;
     }
     int x86 = data[3] & 1; lz = (data[3] >> 1) & 1; TBITS = data[4];
     U32 len = get32(data + 5), crc = get32(data + 9);
-    if (len > MAXSIZE) { fprintf(stderr, "hp: %s: corrupt header\n", ip); return 2; }
+    if (len > MAXSIZE) { fprintf(stderr, "pipr: %s: corrupt header\n", ip); return 2; }
     In in = {data + HDR, n - HDR, 0, 0};
     U8 *out = xalloc((size_t)len + 1, 0);
     int bad = lz ? lz_decompress(&in, out, len) : cm_decompress(&in, out, len);
     if (!bad && x86) e8e9(out, (int64_t)len, 0);
     if (bad || in.i != in.n || crc32c(out, len) != crc) {
-      fprintf(stderr, "hp: %s: corrupt or truncated data, nothing written\n", ip); return 2;
+      fprintf(stderr, "pipr: %s: corrupt or truncated data, nothing written\n", ip); return 2;
     }
     write_all(op, out, len);
   }

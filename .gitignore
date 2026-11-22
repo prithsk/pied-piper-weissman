@@ -1,8 +1,15 @@
 # build outputs
+pipr
+pipr_asan
 hp
 hp_asan
 *.o
+*.pipr
 *.hp
+crash_*.pipr
 crash_*.hp
 __pycache__/
 corpus/
+# release binaries
+pipr-*-x86_64*
+hp-*-x86_64*
